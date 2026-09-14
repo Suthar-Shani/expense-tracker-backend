@@ -1,0 +1,168 @@
+###############################################################################
+# EXPENSE TRACKER REST API - CURL REQUESTS COLLECTION
+# 
+# Usage:
+# 1. Set environment variables (BASE_URL and TOKEN) in your terminal:
+#    BASE_URL="http://localhost:8000"
+#    TOKEN="YOUR_JWT_BEARER_TOKEN_HERE"
+#
+# 2. Or replace variables directly in the curl commands below.
+###############################################################################
+
+# =============================================================================
+# 1. AUTHENTICATION ENDPOINTS (PUBLIC & PROTECTED)
+# =============================================================================
+
+# --- 1.1 Register New User ---
+curl -X POST "http://localhost:8000/api/auth/register" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Jane Doe",
+    "email": "jane@example.com",
+    "password": "password123",
+    "image": "https://example.com/avatar.png"
+  }'
+
+# --- 1.2 Login User ---
+curl -X POST "http://localhost:8000/api/auth/login" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "demo@example.com",
+    "password": "password123"
+  }'
+
+# --- 1.3 Get Current User Profile (Protected) ---
+curl -X GET "http://localhost:8000/api/auth/me" \
+  -H "Authorization: Bearer YOUR_JWT_BEARER_TOKEN_HERE" \
+  -H "Content-Type: application/json"
+
+
+# =============================================================================
+# 2. CATEGORY CRUD ENDPOINTS (PROTECTED)
+# =============================================================================
+
+# --- 2.1 Get All Categories ---
+curl -X GET "http://localhost:8000/api/categories" \
+  -H "Authorization: Bearer YOUR_JWT_BEARER_TOKEN_HERE" \
+  -H "Content-Type: application/json"
+
+# --- 2.2 Create New Category ---
+curl -X POST "http://localhost:8000/api/categories" \
+  -H "Authorization: Bearer YOUR_JWT_BEARER_TOKEN_HERE" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Shopping & Lifestyle"
+  }'
+
+# --- 2.3 Get Single Category Details ---
+curl -X GET "http://localhost:8000/api/categories/CATEGORY_UUID_HERE" \
+  -H "Authorization: Bearer YOUR_JWT_BEARER_TOKEN_HERE" \
+  -H "Content-Type: application/json"
+
+# --- 2.4 Update Category ---
+curl -X PUT "http://localhost:8000/api/categories/CATEGORY_UUID_HERE" \
+  -H "Authorization: Bearer YOUR_JWT_BEARER_TOKEN_HERE" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Shopping & Fashion"
+  }'
+
+# --- 2.5 Delete Category ---
+curl -X DELETE "http://localhost:8000/api/categories/CATEGORY_UUID_HERE" \
+  -H "Authorization: Bearer YOUR_JWT_BEARER_TOKEN_HERE" \
+  -H "Content-Type: application/json"
+
+
+# =============================================================================
+# 3. ACCOUNT CRUD ENDPOINTS (PROTECTED)
+# Allowed type values:  "saveing_ac", "saving", "debit", "credit", "travel"
+# Allowed title values: "bank_ac", "savings", "caredit card", "chash"
+# =============================================================================
+
+# --- 3.1 Get All Accounts ---
+curl -X GET "http://localhost:8000/api/accounts" \
+  -H "Authorization: Bearer YOUR_JWT_BEARER_TOKEN_HERE" \
+  -H "Content-Type: application/json"
+
+# --- 3.2 Create New Account ---
+curl -X POST "http://localhost:8000/api/accounts" \
+  -H "Authorization: Bearer YOUR_JWT_BEARER_TOKEN_HERE" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "type": "debit",
+    "amount": 1500.50,
+    "title": "bank_ac",
+    "icons": "credit-card-icon"
+  }'
+
+# --- 3.3 Get Single Account Details ---
+curl -X GET "http://localhost:8000/api/accounts/ACCOUNT_UUID_HERE" \
+  -H "Authorization: Bearer YOUR_JWT_BEARER_TOKEN_HERE" \
+  -H "Content-Type: application/json"
+
+# --- 3.4 Update Account ---
+curl -X PUT "http://localhost:8000/api/accounts/ACCOUNT_UUID_HERE" \
+  -H "Authorization: Bearer YOUR_JWT_BEARER_TOKEN_HERE" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "type": "saving",
+    "amount": 3200.00,
+    "title": "savings",
+    "icons": "wallet-icon-v2"
+  }'
+
+# --- 3.5 Delete Account ---
+curl -X DELETE "http://localhost:8000/api/accounts/ACCOUNT_UUID_HERE" \
+  -H "Authorization: Bearer YOUR_JWT_BEARER_TOKEN_HERE" \
+  -H "Content-Type: application/json"
+
+
+# =============================================================================
+# 4. TRANSACTION CRUD ENDPOINTS (PROTECTED)
+# Allowed type values: "expense", "income"
+# =============================================================================
+
+# --- 4.1 Get All Transactions (With optional filters) ---
+curl -X GET "http://localhost:8000/api/transactions?type=expense&search=grocery" \
+  -H "Authorization: Bearer YOUR_JWT_BEARER_TOKEN_HERE" \
+  -H "Content-Type: application/json"
+
+# --- 4.2 Create New Transaction ---
+curl -X POST "http://localhost:8000/api/transactions" \
+  -H "Authorization: Bearer YOUR_JWT_BEARER_TOKEN_HERE" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "category_fk": "CATEGORY_UUID_HERE",
+    "account_fk": "ACCOUNT_UUID_HERE",
+    "description": "Supermarket Weekly Supplies",
+    "account": "bank_ac",
+    "date": "2026-08-22 14:30:00",
+    "note": "Organic vegetables and fruits",
+    "amount": 78.50,
+    "type": "expense"
+  }'
+
+# --- 4.3 Get Single Transaction Details ---
+curl -X GET "http://localhost:8000/api/transactions/TRANSACTION_UUID_HERE" \
+  -H "Authorization: Bearer YOUR_JWT_BEARER_TOKEN_HERE" \
+  -H "Content-Type: application/json"
+
+# --- 4.4 Update Transaction ---
+curl -X PUT "http://localhost:8000/api/transactions/TRANSACTION_UUID_HERE" \
+  -H "Authorization: Bearer YOUR_JWT_BEARER_TOKEN_HERE" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "category_fk": "CATEGORY_UUID_HERE",
+    "account_fk": "ACCOUNT_UUID_HERE",
+    "description": "Supermarket Weekly Supplies - Updated",
+    "account": "bank_ac",
+    "date": "2026-08-22 15:00:00",
+    "note": "Organic items and household essentials",
+    "amount": 82.00,
+    "type": "expense"
+  }'
+
+# --- 4.5 Delete Transaction ---
+curl -X DELETE "http://localhost:8000/api/transactions/TRANSACTION_UUID_HERE" \
+  -H "Authorization: Bearer YOUR_JWT_BEARER_TOKEN_HERE" \
+  -H "Content-Type: application/json"
