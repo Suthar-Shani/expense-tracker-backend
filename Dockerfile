@@ -54,8 +54,17 @@ COPY . .
 RUN composer dump-autoload --optimize \
     && chown -R www-data:www-data /var/www/html
 
-# Expose HTTP port
-EXPOSE 80
+# Ensure PHP populates $_ENV from environment variables (important for Docker and Render)
+RUN echo 'variables_order = "EGPCS"' >> /usr/local/etc/php/conf.d/docker-php-vars.ini
 
-# Run Apache in foreground
-CMD ["apache2-foreground"]
+# Copy entrypoint script and fix Windows line endings if any
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN sed -i 's/\r$//' /usr/local/bin/docker-entrypoint.sh \
+    && chmod +x /usr/local/bin/docker-entrypoint.sh
+
+# Expose HTTP port (80 for local, Render dynamically assigns $PORT)
+EXPOSE 80 10000
+
+# Use dynamic entrypoint script
+ENTRYPOINT ["docker-entrypoint.sh"]
+

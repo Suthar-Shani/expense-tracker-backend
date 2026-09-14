@@ -14,11 +14,22 @@ use Psr\Http\Message\ResponseInterface as Response;
 
 require __DIR__ . '/../vendor/autoload.php';
 
-// Load environment variables
+// Load environment variables (.env if present, plus system/container environment variables)
 if (file_exists(__DIR__ . '/../.env')) {
     $dotenv = Dotenv::createImmutable(__DIR__ . '/..');
     $dotenv->load();
 }
+foreach (getenv() as $key => $val) {
+    if (!isset($_ENV[$key])) {
+        $_ENV[$key] = $val;
+    }
+}
+foreach ($_SERVER as $key => $val) {
+    if (!isset($_ENV[$key]) && is_string($val)) {
+        $_ENV[$key] = $val;
+    }
+}
+
 
 $app = AppFactory::create();
 

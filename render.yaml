@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: expense-tracker-backend
+    env: docker
+    plan: free
+    healthCheckPath: /
+    envVars:
+      - key: APP_NAME
+        value: "Expense Tracker API"
+      - key: APP_ENV
+        value: "production"
+      - key: DB_DRIVER
+        value: "mongodb"
+      - key: MONGO_URI
+        sync: false
+      - key: MONGO_DB
+        value: "explanse_db"
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRATION_HOURS
+        value: "72"
+      - key: CORS_ALLOWED_ORIGINS
+        value: "*"

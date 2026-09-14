@@ -97,6 +97,29 @@ The API will be available at `http://localhost:8000`.
 
 ---
 
+## Deploy to Render (Live Deployment)
+
+This project is Docker-ready for deployment on **[Render.com](https://render.com)**.
+
+### Method 1: Render Web Service (Docker)
+1. Push your code to GitHub (`git push origin master`).
+2. Go to [dashboard.render.com](https://dashboard.render.com) and click **New +** -> **Web Service**.
+3. Connect your GitHub repository: `Suthar-Shani/expense-tracker-backend`.
+4. Render will automatically detect the **Docker** runtime.
+5. In **Environment Variables**, add:
+   - `MONGO_URI`: `mongodb+srv://...` (your MongoDB connection string)
+   - `MONGO_DB`: `explanse_db`
+   - `JWT_SECRET`: (Click *Generate* or provide a random 32-character string)
+   - `CORS_ALLOWED_ORIGINS`: `*` (or your frontend domain, e.g. `https://your-frontend.vercel.app`)
+6. Click **Deploy Web Service**.
+
+### Method 2: Render Blueprint (1-Click)
+1. Go to [dashboard.render.com](https://dashboard.render.com) and click **New +** -> **Blueprint**.
+2. Select your repository.
+3. Render reads `render.yaml` automatically. Enter your `MONGO_URI` when prompted and click **Apply**.
+
+---
+
 ## React Integration Quick Guide
 
 To connect your React frontend to this PHP backend:
