@@ -68,6 +68,35 @@ php -S 127.0.0.1:8000 -t public
 
 ---
 
+## Running with Docker
+
+You can run the entire backend using Docker or Docker Compose without installing PHP or Composer locally:
+
+### Option A: Using Docker Compose (Recommended)
+```bash
+# Start the container in detached mode
+docker compose up -d --build
+
+# View container logs
+docker compose logs -f
+
+# Stop the container
+docker compose down
+```
+
+### Option B: Using Standalone Docker Commands
+```bash
+# Build the Docker image
+docker build -t expense-tracker-backend .
+
+# Run container with environment file and port mapping
+docker run -d -p 8000:80 --env-file .env --name expense_api expense-tracker-backend
+```
+
+The API will be available at `http://localhost:8000`.
+
+---
+
 ## React Integration Quick Guide
 
 To connect your React frontend to this PHP backend:

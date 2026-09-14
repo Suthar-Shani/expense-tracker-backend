@@ -1,0 +1,16 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: expense_tracker_backend
+    restart: unless-stopped
+    ports:
+      - "8000:80"
+    env_file:
+      - .env
+    volumes:
+      # Mount application code for hot reloading / live updates in development
+      - .:/var/www/html
+      # Preserve container vendor directory
+      - /var/www/html/vendor
