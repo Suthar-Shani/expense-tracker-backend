@@ -3,6 +3,8 @@ services:
     name: expense-tracker-backend
     env: docker
     plan: free
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
     healthCheckPath: /
     envVars:
       - key: APP_NAME
