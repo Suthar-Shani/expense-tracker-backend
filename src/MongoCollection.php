@@ -30,6 +30,9 @@ class MongoCollection
         if (isset($options['limit']) && is_numeric($options['limit'])) {
             $cmdArgs['limit'] = (int)$options['limit'];
         }
+        if (isset($options['projection']) && is_array($options['projection'])) {
+            $cmdArgs['projection'] = $options['projection'];
+        }
 
         $res = MongoWireDriver::command('find', $cmdArgs);
 
@@ -163,5 +166,23 @@ class MongoCollection
         }
 
         return (int)($res['n'] ?? 0);
+    }
+
+    /**
+     * Create index on MongoDB collection.
+     */
+    public function createIndex(array $keys, array $options = []): array
+    {
+        $indexSpec = array_merge([
+            'key' => $keys,
+            'name' => implode('_', array_keys($keys)) . '_idx'
+        ], $options);
+
+        $cmdArgs = [
+            'createIndexes' => $this->collectionName,
+            'indexes' => [$indexSpec]
+        ];
+
+        return MongoWireDriver::command('createIndexes', $cmdArgs);
     }
 }

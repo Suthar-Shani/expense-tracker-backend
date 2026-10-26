@@ -54,21 +54,39 @@ class TransactionController
 
             $transactions = $txCol->find($filter, ['sort' => ['date' => -1, 'created_at' => -1]]);
 
-            // Enrich with category name and account title details
+            // Pre-fetch all user categories and accounts once to eliminate N+1 database queries
+            $userCategories = $categoriesCol->find(['user_fk' => $userId]);
+            $categoryMap = [];
+            foreach ($userCategories as $cat) {
+                $cId = (string)($cat['_id'] ?? $cat['id'] ?? '');
+                if ($cId !== '') {
+                    $categoryMap[$cId] = $cat['name'] ?? null;
+                }
+            }
+
+            $userAccounts = $accountsCol->find(['user_fk' => $userId]);
+            $accountMap = [];
+            foreach ($userAccounts as $acc) {
+                $aId = (string)($acc['_id'] ?? $acc['id'] ?? '');
+                if ($aId !== '') {
+                    $accountMap[$aId] = [
+                        'title' => $acc['title'] ?? null,
+                        'type' => $acc['type'] ?? null,
+                    ];
+                }
+            }
+
+            // Enrich transactions with O(1) in-memory lookups
             foreach ($transactions as &$tx) {
                 $tx['amount'] = (float)$tx['amount'];
 
-                if (!empty($tx['category_fk'])) {
-                    $cat = $categoriesCol->findOne(['_id' => $tx['category_fk']]);
-                    $tx['category_name'] = $cat ? $cat['name'] : null;
-                } else {
-                    $tx['category_name'] = null;
-                }
+                $catId = (string)($tx['category_fk'] ?? '');
+                $tx['category_name'] = ($catId !== '' && isset($categoryMap[$catId])) ? $categoryMap[$catId] : null;
 
-                if (!empty($tx['account_fk'])) {
-                    $acc = $accountsCol->findOne(['_id' => $tx['account_fk']]);
-                    $tx['account_title'] = $acc ? $acc['title'] : null;
-                    $tx['account_type'] = $acc ? $acc['type'] : null;
+                $accId = (string)($tx['account_fk'] ?? '');
+                if ($accId !== '' && isset($accountMap[$accId])) {
+                    $tx['account_title'] = $accountMap[$accId]['title'];
+                    $tx['account_type'] = $accountMap[$accId]['type'];
                 } else {
                     $tx['account_title'] = null;
                     $tx['account_type'] = null;

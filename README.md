@@ -39,6 +39,16 @@ A modern, high-performance **PHP REST API Backend** built with **Composer**, **S
 | `PUT` | `/api/expenses/{id}` | Update existing expense | `{ "title": "Updated Title", "amount": 120, ... }` |
 | `DELETE` | `/api/expenses/{id}` | Delete an expense | None |
 
+### Dashboard Endpoints (Protected: `Authorization: Bearer <token>`)
+
+| Method | Endpoint | Description | Query Parameters |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/api/dashboard` | **Master Dashboard**: All 4 sections in 1 payload | `?month=YYYY-MM&months=6&limit=5` |
+| `GET` | `/api/dashboard/summary` | **Section 1**: KPI Summary Cards (Balance, Income, Expenses, % Changes) | `?month=YYYY-MM` (e.g. `2026-10`) |
+| `GET` | `/api/dashboard/spending-overview` | **Section 2**: Monthly Income vs Expenses Chart data | `?months=6` (default 6, up to 24) |
+| `GET` | `/api/dashboard/expense-breakdown` | **Section 3**: Top spending categories & donut chart data | `?month=YYYY-MM` or `?month=all` |
+| `GET` | `/api/dashboard/recent-transactions` | **Section 4**: Recent transactions table enriched with categories/accounts | `?limit=5` (default 5, up to 50) |
+
 ---
 
 ## Quick Start Guide

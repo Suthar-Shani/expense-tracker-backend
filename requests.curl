@@ -39,36 +39,63 @@ curl -X GET "http://localhost:8000/api/auth/me" \
 
 # =============================================================================
 # 2. CATEGORY CRUD ENDPOINTS (PROTECTED)
+# Supported fields:
+# - name (string, required): e.g. "Food & Dining"
+# - iconName (string, optional): e.g. "Utensils", "Wallet", "Zap", "Car", "Film", "ShoppingBag"
+# - color (string, optional): "green", "blue", "purple", "amber", "rose", "cyan", "emerald", "indigo", "teal", "orange"
+# - budget (number, optional): Monthly budget allocation (e.g. 600.00)
 # =============================================================================
 
-# --- 2.1 Get All Categories ---
+# --- 2.1 Get All Categories (Enriched with live spend, tx_count & budget stats) ---
 curl -X GET "http://localhost:8000/api/categories" \
   -H "Authorization: Bearer YOUR_JWT_BEARER_TOKEN_HERE" \
   -H "Content-Type: application/json"
 
-# --- 2.2 Create New Category ---
+# --- 2.2 Create New Category (Full attributes) ---
 curl -X POST "http://localhost:8000/api/categories" \
   -H "Authorization: Bearer YOUR_JWT_BEARER_TOKEN_HERE" \
   -H "Content-Type: application/json" \
   -d '{
-    "name": "Shopping & Lifestyle"
+    "name": "Food & Dining",
+    "iconName": "Utensils",
+    "color": "green",
+    "budget": 500.00
   }'
 
-# --- 2.3 Get Single Category Details ---
+# --- 2.3 Create Another Category (Transport) ---
+curl -X POST "http://localhost:8000/api/categories" \
+  -H "Authorization: Bearer YOUR_JWT_BEARER_TOKEN_HERE" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Transport & Fuel",
+    "iconName": "Car",
+    "color": "blue",
+    "budget": 250.00
+  }'
+
+# --- 2.4 Get Single Category Details with Metrics ---
 curl -X GET "http://localhost:8000/api/categories/CATEGORY_UUID_HERE" \
   -H "Authorization: Bearer YOUR_JWT_BEARER_TOKEN_HERE" \
   -H "Content-Type: application/json"
 
-# --- 2.4 Update Category ---
+# --- 2.5 Update Category (Name, Color, and Budget) ---
 curl -X PUT "http://localhost:8000/api/categories/CATEGORY_UUID_HERE" \
   -H "Authorization: Bearer YOUR_JWT_BEARER_TOKEN_HERE" \
   -H "Content-Type: application/json" \
   -d '{
-    "name": "Shopping & Fashion"
+    "name": "Fine Dining & Groceries",
+    "iconName": "Utensils",
+    "color": "amber",
+    "budget": 650.00
   }'
 
-# --- 2.5 Delete Category ---
+# --- 2.6 Delete Category (Safe delete: blocked if transactions are linked) ---
 curl -X DELETE "http://localhost:8000/api/categories/CATEGORY_UUID_HERE" \
+  -H "Authorization: Bearer YOUR_JWT_BEARER_TOKEN_HERE" \
+  -H "Content-Type: application/json"
+
+# --- 2.7 Force Delete Category (Unlinks existing transactions and removes category) ---
+curl -X DELETE "http://localhost:8000/api/categories/CATEGORY_UUID_HERE?force=true" \
   -H "Authorization: Bearer YOUR_JWT_BEARER_TOKEN_HERE" \
   -H "Content-Type: application/json"
 
@@ -166,3 +193,122 @@ curl -X PUT "http://localhost:8000/api/transactions/TRANSACTION_UUID_HERE" \
 curl -X DELETE "http://localhost:8000/api/transactions/TRANSACTION_UUID_HERE" \
   -H "Authorization: Bearer YOUR_JWT_BEARER_TOKEN_HERE" \
   -H "Content-Type: application/json"
+
+
+# =============================================================================
+# 5. DASHBOARD ENDPOINTS (MASTER & SECTION-WISE)
+# =============================================================================
+
+# --- 5.1 Full Master Dashboard (All sections in one call) ---
+curl -X GET "http://localhost:8000/api/dashboard" \
+  -H "Authorization: Bearer YOUR_JWT_BEARER_TOKEN_HERE" \
+  -H "Content-Type: application/json"
+
+# --- 5.1.1 Full Master Dashboard with custom month & limits ---
+curl -X GET "http://localhost:8000/api/dashboard?month=2026-10&months=6&limit=5" \
+  -H "Authorization: Bearer YOUR_JWT_BEARER_TOKEN_HERE" \
+  -H "Content-Type: application/json"
+
+# --- 5.2 Section 1: KPI Summary Cards (Total Balance, Monthly Income, Monthly Expenses) ---
+curl -X GET "http://localhost:8000/api/dashboard/summary" \
+  -H "Authorization: Bearer YOUR_JWT_BEARER_TOKEN_HERE" \
+  -H "Content-Type: application/json"
+
+# --- 5.2.1 Section 1 with specific target month ---
+curl -X GET "http://localhost:8000/api/dashboard/summary?month=2026-10" \
+  -H "Authorization: Bearer YOUR_JWT_BEARER_TOKEN_HERE" \
+  -H "Content-Type: application/json"
+
+# --- 5.3 Section 2: Spending Overview Chart (Monthly Income vs Expenses) ---
+# Query params: months (default: 6, max: 24)
+curl -X GET "http://localhost:8000/api/dashboard/spending-overview?months=6" \
+  -H "Authorization: Bearer YOUR_JWT_BEARER_TOKEN_HERE" \
+  -H "Content-Type: application/json"
+
+# --- 5.4 Section 3: Expense Breakdown (Top spending categories & donut chart) ---
+# Query params: month (default: current month, or 'all')
+curl -X GET "http://localhost:8000/api/dashboard/expense-breakdown?month=2026-10" \
+  -H "Authorization: Bearer YOUR_JWT_BEARER_TOKEN_HERE" \
+  -H "Content-Type: application/json"
+
+# --- 5.4.1 Section 3: Expense Breakdown All Time ---
+curl -X GET "http://localhost:8000/api/dashboard/expense-breakdown?month=all" \
+  -H "Authorization: Bearer YOUR_JWT_BEARER_TOKEN_HERE" \
+  -H "Content-Type: application/json"
+
+# --- 5.5 Section 4: Recent Transactions Table ---
+# Query params: limit (default: 5, max: 50)
+curl -X GET "http://localhost:8000/api/dashboard/recent-transactions?limit=5" \
+  -H "Authorization: Bearer YOUR_JWT_BEARER_TOKEN_HERE" \
+  -H "Content-Type: application/json"
+
+
+# =============================================================================
+# 6. FINANCIAL PERFORMANCE & ANALYTICS (SCREENSHOT MATCH)
+# 
+# UI Elements Provided:
+# 1. Header: Timeframe Dropdown (This Month, Last Month, Last 3 Months, This Year)
+# 2. Top 4 Metric Cards:
+#    - Total Income (e.g. ₹15,000.00 | +12.5% vs prior period)
+#    - Total Expenses (e.g. ₹1,200.00 | -8.4% vs prior period)
+#    - Net Savings (e.g. ₹13,800.00 | 92.0%)
+#    - Savings Rate (e.g. 92.0%)
+# 3. Spending Overview: Monthly Income vs Expenses Comparison Bar Chart
+# 4. Expense Breakdown: Donut Chart Total & Top Categories List
+# 5. Monthly Averages:
+#    - Avg Monthly Income (e.g. ₹5,125.00 | ↑ 6.2% vs prior period)
+#    - Avg Monthly Expenses (e.g. ₹3,410.50 | ↑ 3.8% vs prior period)
+#    - Avg Monthly Savings (e.g. ₹1,714.50 | ↑ 9.4% vs prior period)
+# =============================================================================
+
+# --- 6.1 Complete Financial Performance (Default: This Month) ---
+curl -X GET "http://localhost:8000/api/dashboard/financial-performance" \
+  -H "Authorization: Bearer YOUR_JWT_BEARER_TOKEN_HERE" \
+  -H "Content-Type: application/json"
+
+# --- 6.2 Financial Performance - Filter: "This Month" ---
+curl -X GET "http://localhost:8000/api/dashboard/financial-performance?timeframe=this_month" \
+  -H "Authorization: Bearer YOUR_JWT_BEARER_TOKEN_HERE" \
+  -H "Content-Type: application/json"
+
+# --- 6.3 Financial Performance - Filter: "Last Month" ---
+curl -X GET "http://localhost:8000/api/dashboard/financial-performance?timeframe=last_month" \
+  -H "Authorization: Bearer YOUR_JWT_BEARER_TOKEN_HERE" \
+  -H "Content-Type: application/json"
+
+# --- 6.4 Financial Performance - Filter: "Last 3 Months" ---
+curl -X GET "http://localhost:8000/api/dashboard/financial-performance?timeframe=last_3_months" \
+  -H "Authorization: Bearer YOUR_JWT_BEARER_TOKEN_HERE" \
+  -H "Content-Type: application/json"
+
+# --- 6.5 Financial Performance - Filter: "This Year" ---
+curl -X GET "http://localhost:8000/api/dashboard/financial-performance?timeframe=this_year" \
+  -H "Authorization: Bearer YOUR_JWT_BEARER_TOKEN_HERE" \
+  -H "Content-Type: application/json"
+
+# --- 6.6 Financial Performance - Specific Target Month (YYYY-MM) ---
+curl -X GET "http://localhost:8000/api/dashboard/financial-performance?month=2026-10" \
+  -H "Authorization: Bearer YOUR_JWT_BEARER_TOKEN_HERE" \
+  -H "Content-Type: application/json"
+
+# --- 6.7 Financial Performance - Custom Date Range (Start & End Date) ---
+curl -X GET "http://localhost:8000/api/dashboard/financial-performance?start_date=2026-08-01&end_date=2026-10-31" \
+  -H "Authorization: Bearer YOUR_JWT_BEARER_TOKEN_HERE" \
+  -H "Content-Type: application/json"
+
+# --- 6.8 Direct Alias Route: GET /api/financial-performance ---
+curl -X GET "http://localhost:8000/api/financial-performance?timeframe=this_month" \
+  -H "Authorization: Bearer YOUR_JWT_BEARER_TOKEN_HERE" \
+  -H "Content-Type: application/json"
+
+# --- 6.9 Dedicated Monthly Averages Endpoint (Bottom Cards Row) ---
+# Query params: months (default: 6)
+curl -X GET "http://localhost:8000/api/dashboard/monthly-averages?months=6" \
+  -H "Authorization: Bearer YOUR_JWT_BEARER_TOKEN_HERE" \
+  -H "Content-Type: application/json"
+
+# --- 6.10 Expense Breakdown with Timeframe Filter ---
+curl -X GET "http://localhost:8000/api/dashboard/expense-breakdown?timeframe=this_month" \
+  -H "Authorization: Bearer YOUR_JWT_BEARER_TOKEN_HERE" \
+  -H "Content-Type: application/json"
+

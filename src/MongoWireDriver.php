@@ -216,8 +216,12 @@ class MongoWireDriver
             } else {
                 foreach (explode(',', $parsed['hosts']) as $h) {
                     $parts = explode(':', trim($h));
+                    $host = trim($parts[0]);
+                    if ($host === 'localhost') {
+                        $host = '127.0.0.1';
+                    }
                     $candidateHosts[] = [
-                        'host' => $parts[0],
+                        'host' => $host,
                         'port' => isset($parts[1]) ? (int)$parts[1] : 27017
                     ];
                 }
@@ -235,12 +239,14 @@ class MongoWireDriver
                 ]
             ]);
 
+            $connectTimeout = ($parsed['scheme'] === 'mongodb+srv' || $isAtlas) ? 3 : 1.5;
+
             foreach ($candidateHosts as $target) {
                 $proto = $isSsl ? 'ssl://' : '';
                 $remote = $proto . $target['host'] . ':' . $target['port'];
 
                 self::log("Attempting socket connection to {$remote}...");
-                $fp = @stream_socket_client($remote, $errno, $errstr, 5, STREAM_CLIENT_CONNECT, $context);
+                $fp = @stream_socket_client($remote, $errno, $errstr, $connectTimeout, STREAM_CLIENT_CONNECT, $context);
                 if ($fp) {
                     $connectedHost = $target['host'] . ':' . $target['port'];
                     self::log("Socket connection SUCCESSful to {$connectedHost}");
@@ -254,30 +260,36 @@ class MongoWireDriver
                 throw new Exception("Unable to connect to MongoDB cluster (" . ($lastErr ?: 'connection failed') . ")");
             }
 
-            // MongoDB Replica Set Primary Node Discovery
-            try {
-                self::log("Running replica set topology check (hello/ismaster)...");
-                $helloRes = self::rawCommand($fp, 'hello', ['hello' => 1], 'admin');
-                if (empty($helloRes['ok'])) {
-                    $helloRes = self::rawCommand($fp, 'ismaster', ['ismaster' => 1], 'admin');
-                }
-                if (!empty($helloRes['primary']) && is_string($helloRes['primary'])) {
-                    $primaryHostPort = $helloRes['primary'];
-                    self::log("Discovered Primary Node: {$primaryHostPort}");
-                    if ($primaryHostPort !== $connectedHost) {
-                        $proto = $isSsl ? 'ssl://' : '';
-                        $primaryRemote = $proto . $primaryHostPort;
-                        self::log("Switching connection to Primary Node: {$primaryRemote}");
-                        $primaryFp = @stream_socket_client($primaryRemote, $errno, $errstr, 5, STREAM_CLIENT_CONNECT, $context);
-                        if ($primaryFp) {
-                            @fclose($fp);
-                            $fp = $primaryFp;
-                            self::log("Connected to Primary Node SUCCESSfully.");
+            // MongoDB Replica Set Primary Node Discovery (only if replica set or Atlas SRV)
+            $isReplicaSet = ($parsed['scheme'] === 'mongodb+srv'
+                || str_contains(strtolower($parsed['options']), 'replicaset=')
+                || $isAtlas);
+
+            if ($isReplicaSet) {
+                try {
+                    self::log("Running replica set topology check (hello/ismaster)...");
+                    $helloRes = self::rawCommand($fp, 'hello', ['hello' => 1], 'admin');
+                    if (empty($helloRes['ok'])) {
+                        $helloRes = self::rawCommand($fp, 'ismaster', ['ismaster' => 1], 'admin');
+                    }
+                    if (!empty($helloRes['primary']) && is_string($helloRes['primary'])) {
+                        $primaryHostPort = $helloRes['primary'];
+                        self::log("Discovered Primary Node: {$primaryHostPort}");
+                        if ($primaryHostPort !== $connectedHost) {
+                            $proto = $isSsl ? 'ssl://' : '';
+                            $primaryRemote = $proto . $primaryHostPort;
+                            self::log("Switching connection to Primary Node: {$primaryRemote}");
+                            $primaryFp = @stream_socket_client($primaryRemote, $errno, $errstr, 2, STREAM_CLIENT_CONNECT, $context);
+                            if ($primaryFp) {
+                                @fclose($fp);
+                                $fp = $primaryFp;
+                                self::log("Connected to Primary Node SUCCESSfully.");
+                            }
                         }
                     }
+                } catch (\Throwable $t) {
+                    self::log("Primary discovery note: " . $t->getMessage());
                 }
-            } catch (Throwable $t) {
-                self::log("Primary discovery note: " . $t->getMessage());
             }
 
             self::$socket = $fp;

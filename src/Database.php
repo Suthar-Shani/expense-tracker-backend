@@ -38,4 +38,36 @@ class Database
         self::$collections[$collectionName] = $collection;
         return $collection;
     }
+
+    /**
+     * Create essential MongoDB indexes for optimal query execution performance.
+     */
+    public static function ensureIndexes(): array
+    {
+        $results = [];
+        try {
+            // Transactions indexes
+            $txCol = self::getCollection('transactions');
+            if (method_exists($txCol, 'createIndex')) {
+                $results['transactions_user_date'] = $txCol->createIndex(['user_fk' => 1, 'date' => -1]);
+                $results['transactions_user_cat'] = $txCol->createIndex(['user_fk' => 1, 'category_fk' => 1]);
+                $results['transactions_user_acc'] = $txCol->createIndex(['user_fk' => 1, 'account_fk' => 1]);
+
+                // Categories index
+                $catCol = self::getCollection('categories');
+                $results['categories_user_name'] = $catCol->createIndex(['user_fk' => 1, 'name' => 1]);
+
+                // Accounts index
+                $accCol = self::getCollection('accounts');
+                $results['accounts_user'] = $accCol->createIndex(['user_fk' => 1]);
+
+                // Users index (unique email)
+                $usersCol = self::getCollection('users');
+                $results['users_email'] = $usersCol->createIndex(['email' => 1], ['unique' => true]);
+            }
+        } catch (\Throwable $t) {
+            $results['error'] = $t->getMessage();
+        }
+        return $results;
+    }
 }

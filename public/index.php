@@ -8,6 +8,7 @@ use App\Controllers\AuthController;
 use App\Controllers\CategoryController;
 use App\Controllers\AccountController;
 use App\Controllers\TransactionController;
+use App\Controllers\DashboardController;
 use App\Helpers\ResponseHelper;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Http\Message\ResponseInterface as Response;
@@ -82,11 +83,11 @@ $app->get('/api', function (Request $request, Response $response) {
             'GET /api/auth/me' => '[Auth] Get current user profile',
 
             // Categories
-            'GET /api/categories' => '[Auth] List user categories',
-            'GET /api/categories/{id}' => '[Auth] Get category details',
-            'POST /api/categories' => '[Auth] Create a category (name)',
-            'PUT /api/categories/{id}' => '[Auth] Update category',
-            'DELETE /api/categories/{id}' => '[Auth] Delete category',
+            'GET /api/categories' => '[Auth] List user categories with live spend & transaction stats',
+            'GET /api/categories/{id}' => '[Auth] Get category details and metrics',
+            'POST /api/categories' => '[Auth] Create a category (name, iconName, color, budget)',
+            'PUT /api/categories/{id}' => '[Auth] Update category (name, iconName, color, budget)',
+            'DELETE /api/categories/{id}' => '[Auth] Delete category (supports ?force=true if linked transactions exist)',
 
             // Accounts
             'GET /api/accounts' => '[Auth] List user accounts',
@@ -100,7 +101,16 @@ $app->get('/api', function (Request $request, Response $response) {
             'GET /api/transactions/{id}' => '[Auth] Get transaction details',
             'POST /api/transactions' => '[Auth] Create transaction (category_fk, account_fk, description, account, date, note, amount, type)',
             'PUT /api/transactions/{id}' => '[Auth] Update transaction',
-            'DELETE /api/transactions/{id}' => '[Auth] Delete transaction'
+            'DELETE /api/transactions/{id}' => '[Auth] Delete transaction',
+
+            // Dashboard & Financial Performance Endpoints
+            'GET /api/dashboard' => '[Auth] Complete master dashboard (all sections combined)',
+            'GET /api/dashboard/financial-performance' => '[Auth] Financial Performance screen data (?timeframe=this_month|last_month|last_3_months|this_year)',
+            'GET /api/dashboard/monthly-averages' => '[Auth] Historical monthly averages with prior period trends (?months=6)',
+            'GET /api/dashboard/summary' => '[Auth] Top metric cards (Total balance, income, expenses, net savings, savings rate)',
+            'GET /api/dashboard/spending-overview' => '[Auth] Monthly income vs expenses comparison chart data (?months=6)',
+            'GET /api/dashboard/expense-breakdown' => '[Auth] Category expense breakdown & donut chart data (?month=YYYY-MM or ?timeframe=...)',
+            'GET /api/dashboard/recent-transactions' => '[Auth] Recent transactions list with categories and accounts (?limit=5)'
         ]
     ], 'Expense Tracker REST API Documentation');
 });
@@ -114,10 +124,26 @@ $app->options('/[{params:.*}]', function (Request $request, Response $response) 
 $app->post('/api/auth/register', [AuthController::class, 'register']);
 $app->post('/api/auth/login', [AuthController::class, 'login']);
 
+// Database Maintenance: Create indexes for fast queries
+$app->get('/api/maintenance/indexes', function (Request $request, Response $response) {
+    $results = \App\Database::ensureIndexes();
+    return ResponseHelper::success($response, $results, 'Indexes verified and created');
+});
+
 // Protected API Routes (Requires JWT Authentication)
 $app->group('/api', function ($group) {
     // Current User Profile
     $group->get('/auth/me', [AuthController::class, 'me']);
+
+    // Dashboard & Financial Performance Endpoints
+    $group->get('/dashboard', [DashboardController::class, 'index']);
+    $group->get('/dashboard/financial-performance', [DashboardController::class, 'financialPerformance']);
+    $group->get('/dashboard/monthly-averages', [DashboardController::class, 'monthlyAverages']);
+    $group->get('/financial-performance', [DashboardController::class, 'financialPerformance']);
+    $group->get('/dashboard/summary', [DashboardController::class, 'summary']);
+    $group->get('/dashboard/spending-overview', [DashboardController::class, 'spendingOverview']);
+    $group->get('/dashboard/expense-breakdown', [DashboardController::class, 'expenseBreakdown']);
+    $group->get('/dashboard/recent-transactions', [DashboardController::class, 'recentTransactions']);
 
     // Category CRUD
     $group->get('/categories', [CategoryController::class, 'index']);
